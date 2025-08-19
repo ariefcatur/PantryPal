@@ -1,0 +1,29 @@
+# Xcode & Swift
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+
+# SwiftPM
+Packages/
+Package.resolved
+
+# CocoaPods (kalau pakai)
+Pods/
+*.xcworkspace
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**
+
+# Archives
+*.ipa
+*.dSYM
+*.xcarchive
+
+# User-specific
+*.swp
+.DS_Store
