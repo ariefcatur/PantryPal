@@ -42,3 +42,7 @@ struct AddEditItemView: View {
         }
     }
 }
+
+#Preview {
+AddEditItemView { _ in }
+}

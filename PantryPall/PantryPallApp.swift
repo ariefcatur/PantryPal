@@ -12,7 +12,7 @@ import SwiftData
 struct PantryPallApp: App {
     var body: some Scene {
             WindowGroup {
-                PantryListView()
+                MainTabView()
             }
             .modelContainer(for: PantryItem.self)
         }
