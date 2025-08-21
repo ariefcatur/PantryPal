@@ -79,3 +79,8 @@ struct PantryListView: View {
         .accessibilityLabel("\(item.name), sisa \(item.daysLeft) hari")
     }
 }
+
+#Preview {
+PantryListView()
+.modelContainer(previewContainer)
+}
