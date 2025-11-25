@@ -8,13 +8,14 @@ import SwiftUI
 import SwiftData
 
 // MARK: - Dashboard (Header, Stats, Grid)
+/// Main dashboard view displaying pantry items with statistics and visual cards
 struct PantryDashboardView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \PantryItem.expiryDate) private var items: [PantryItem]
 
-    // In-app theme toggle (override system)
     @AppStorage("useDarkMode") private var useDarkMode = false
     @State private var showAdd = false
+    @State private var selectedItem: PantryItem?
 
     private let dateFormatter: DateFormatter = {
         let df = DateFormatter()
@@ -101,8 +102,11 @@ struct PantryDashboardView: View {
                             Text("No items yet").font(.title3).bold()
                             Text("Add your first item to start tracking expiry dates!")
                                 .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
                         }
                         .padding(.vertical, 48)
+                        .transition(.opacity.combined(with: .scale))
                     } else {
                         LazyVGrid(columns: cardCols, spacing: 16) {
                             ForEach(sortedItems) { item in
@@ -112,27 +116,49 @@ struct PantryDashboardView: View {
                                     dateText: dateFormatter.string(from: item.expiryDate),
                                     statusText: statusText(for: item.daysLeft),
                                     statusColor: statusColor(for: item.daysLeft),
-                                    onDelete: { delete(item) }
+                                    onDelete: { delete(item) },
+                                    onEdit: { selectedItem = item }
                                 )
+                                .transition(.asymmetric(
+                                    insertion: .scale.combined(with: .opacity),
+                                    removal: .scale.combined(with: .opacity)
+                                ))
                             }
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 24)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: sortedItems.count)
                     }
                 }
                 .padding(.top, 16)
             }
         }
-        // Sheet Add Item (pakai view yang sudah ada)
         .sheet(isPresented: $showAdd) {
             AddEditItemView { item in
-                // langsung insert + jadwalkan reminder seperti sebelumnya
-                let vm = PantryViewModel()
-                vm.add(context, item: item)
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    let vm = PantryViewModel()
+                    vm.add(context, item: item)
+                    hapticFeedback(.medium)
+                }
             }
             .presentationDetents([.medium, .large])
         }
-        .preferredColorScheme(useDarkMode ? .dark : .light) // override seperti React toggle
+        .sheet(item: $selectedItem) { item in
+            AddEditItemView(existingItem: item) { updatedItem in
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    item.name = updatedItem.name
+                    item.category = updatedItem.category
+                    item.quantity = updatedItem.quantity
+                    item.location = updatedItem.location
+                    item.expiryDate = updatedItem.expiryDate
+                    item.updatedAt = .now
+                    try? context.save()
+                    hapticFeedback(.medium)
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .preferredColorScheme(useDarkMode ? .dark : .light)
     }
 
     // MARK: Helpers
@@ -181,9 +207,17 @@ struct PantryDashboardView: View {
     }
 
     private func delete(_ item: PantryItem) {
-        context.delete(item)
-        try? context.save()
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+            context.delete(item)
+            try? context.save()
+        }
         Task { await NotificationService.cancelReminders(for: [item]) }
+        hapticFeedback(.medium)
+    }
+    
+    private func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
     }
 }
 
@@ -226,41 +260,88 @@ private struct ItemCard: View {
     let statusText: String
     let statusColor: Color
     let onDelete: () -> Void
+    let onEdit: () -> Void
+    
+    @State private var isPressed = false
 
     var body: some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(color)
+                .fill(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.7)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .frame(height: 6)
 
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
+                    // Category icon
+                    ZStack {
+                        Circle()
+                            .fill(color.opacity(0.15))
+                            .frame(width: 44, height: 44)
+                        Text(categoryEmoji(item.category))
+                            .font(.title3)
+                    }
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         Text(item.name)
                             .font(.headline)
                             .foregroundStyle(.primary)
-                        Text(item.category)
-                            .font(.caption)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(.thinMaterial, in: Capsule())
+                        HStack(spacing: 4) {
+                            Text(item.category)
+                            Text("•")
+                            Text("\(item.quantity)x")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
+                    
                     Spacer()
-                    Button(role: .destructive) { onDelete() } label: {
-                        Image(systemName: "trash.fill").imageScale(.medium)
+                    
+                    Menu {
+                        Button {
+                            onEdit()
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            onDelete()
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle.fill")
+                            .imageScale(.large)
                             .foregroundStyle(.secondary)
                             .padding(8)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Delete \(item.name)")
                 }
 
+                Divider()
+                
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Expires: \(dateText)")
-                        .foregroundStyle(.secondary)
-                    Text(statusText)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(statusColor)
+                    HStack {
+                        Image(systemName: "calendar")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(dateText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Image(systemName: statusIcon(for: item.daysLeft))
+                            .font(.caption2)
+                            .foregroundStyle(statusColor)
+                        Text(statusText)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(statusColor)
+                    }
                 }
             }
             .padding(16)
@@ -269,9 +350,42 @@ private struct ItemCard: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(.regularMaterial)
         )
-        .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(color.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: color.opacity(0.15), radius: isPressed ? 5 : 10, y: isPressed ? 2 : 5)
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isPressed)
+        .onTapGesture {
+            isPressed = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isPressed = false
+                onEdit()
+            }
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(item.name), \(statusText)")
+        .accessibilityHint("Double tap to edit, or open menu for more options")
+    }
+    
+    private func categoryEmoji(_ category: String) -> String {
+        switch category.lowercased() {
+        case "dairy": return "🥛"
+        case "meat": return "🥩"
+        case "vegetables": return "🥬"
+        case "bakery": return "🍞"
+        case "medicine": return "💊"
+        case "cosmetics": return "💄"
+        default: return "📦"
+        }
+    }
+    
+    private func statusIcon(for days: Int) -> String {
+        if days < 0 { return "xmark.circle.fill" }
+        if days <= 3 { return "exclamationmark.triangle.fill" }
+        if days <= 7 { return "clock.fill" }
+        return "checkmark.circle.fill"
     }
 }
 
