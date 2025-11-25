@@ -48,21 +48,8 @@ A beautifully designed iOS app to track pantry items and prevent food waste by m
 - **Smart Validation** - Helpful warnings for expired dates
 
 ## 📱 Screenshots
+  <img width="250" height="500" alt="Simulator Screenshot - iPhone 17 Pro - 2025-11-25 at 22 13 37" src="https://github.com/user-attachments/assets/ac863ffc-4a72-4a92-83ff-9536ce3f4d61" />                     <img width="250" height="500" alt="Simulator Screenshot - iPhone 17 Pro - 2025-11-25 at 22 19 17" src="https://github.com/user-attachments/assets/cce123e6-d0fc-4bb5-be15-1315315b2e68" />                     <img width="250" height="500" alt="Simulator Screenshot - iPhone 17 Pro - 2025-11-25 at 21 37 44" src="https://github.com/user-attachments/assets/067ef153-c0b5-4549-9ea8-2ad9e2cad791" />                    <img width="250" height="500" alt="Simulator Screenshot - iPhone 17 Pro - 2025-11-25 at 21 38 06" src="https://github.com/user-attachments/assets/00e01aad-a013-4556-b47f-7d511c412fa3" />
 
-```
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│   Dashboard     │  │   List View     │  │   Add/Edit      │
-│                 │  │                 │  │                 │
-│  ┌───┬───┬───┐  │  │  🥛 Milk        │  │  Item Name: ___ │
-│  │Tot│Exp│Soo│  │  │  Dairy • 2x    │  │                 │
-│  └───┴───┴───┘  │  │  3 days left    │  │  Category: 🥛   │
-│                 │  │                 │  │  Location: ❄️   │
-│  ┌───────────┐  │  │  🥬 Spinach    │  │                 │
-│  │🥛 Milk    │  │  │  Vegetables    │  │  📅 Calendar    │
-│  │3 days left│  │  │  10 days left   │  │                 │
-│  └───────────┘  │  │                 │  │  [Add Button]   │
-└─────────────────┘  └─────────────────┘  └─────────────────┘
-```
 
 ## 🚀 Getting Started
 
